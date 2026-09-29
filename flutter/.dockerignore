@@ -4,3 +4,6 @@ build/
 *.iml
 android/.gradle/
 ios/Pods/
+dist/
+macos/Pods/
+macos/Flutter/ephemeral/

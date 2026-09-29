@@ -10,6 +10,14 @@ flutter pub get
 flutter run --dart-define=API_URL=http://localhost:8000
 ```
 
+Release builds (output in `dist/`, run `./build.sh` for all options):
+
+```bash
+./build.sh apk-split   # Android
+./build.sh ios         # iPhone (on a Mac)
+./build.sh macos       # macOS  (on a Mac)
+```
+
 Docker (web build + nginx on :8080):
 
 ```bash

@@ -43,6 +43,34 @@ Default: `http://35.207.134.118:8000` (the Google Cloud VM), set in
 runtime via the server address on the login screen (saved on the device and
 used instead of the default from then on).
 
+## Building releases — `build.sh`
+
+```bash
+cd flutter
+./build.sh apk-split     # Android (phones: dist/*-arm64-v8a.apk)
+./build.sh ios           # iPhone .ipa      (on a Mac with Xcode)
+./build.sh macos         # macOS app .zip   (on a Mac with Xcode)
+./build.sh all           # everything this OS can build
+```
+
+Output goes to `flutter/dist/`. Run `./build.sh` without arguments for all
+targets. `API_URL`, `BUILD_NAME` and `BUILD_NUMBER` override the backend URL and
+version, e.g. `BUILD_NUMBER=2 ./build.sh apk` (Android/iOS only install an
+update when the build number is higher).
+
+### Apple platforms
+
+Needs a Mac with Xcode and CocoaPods (`brew install cocoapods`).
+
+- **iOS signing:** open `ios/Runner.xcworkspace` in Xcode → *Runner* →
+  *Signing & Capabilities* → choose your Team (a free Apple ID works for
+  installing on your own iPhone). `flutter run --release` with the phone
+  plugged in installs it directly.
+- **http://** is allowed via `NSAppTransportSecurity` in both `Info.plist`
+  files, because the backend has no HTTPS yet. Remove it once it does.
+- **macOS sandbox:** `com.apple.security.network.client` in the
+  `.entitlements` files lets the app connect to the backend.
+
 ## Commands
 
 ```bash

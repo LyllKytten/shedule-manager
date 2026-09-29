@@ -58,3 +58,8 @@ flutter/linux/flutter/ephemeral/
 
 # ---------- Docker ----------
 docker-compose.override.yml
+flutter/dist/
+flutter/macos/Pods/
+flutter/macos/Flutter/ephemeral/
+flutter/ios/build/
+*.ipa
