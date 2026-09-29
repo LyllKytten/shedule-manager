@@ -25,6 +25,9 @@ def _out(e: Event) -> EventOut:
         series_id=e.series_id,
         repeat_type=e.repeat_type,
         repeat_interval_days=e.repeat_interval_days,
+        repeat_days_on=e.repeat_days_on,
+        repeat_days_off=e.repeat_days_off,
+        series_start=e.series_start,
         series_infinite=e.series_infinite,
     )
 
@@ -109,6 +112,8 @@ def _free_for_range(db: Session, user: User, start: date, end: date) -> list[Fre
 def create(body: EventCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if body.repeat_type == "custom" and not body.repeat_interval_days:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "repeat_interval_days required for custom")
+    if body.repeat_type == "cycle" and not (body.repeat_days_on and body.repeat_days_off):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "repeat_days_on and repeat_days_off required for cycle")
     if body.repeat_type is None and body.occurrences is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "infinite series requires repeat_type")
     return [_out(e) for e in create_events(db, user.id, body.model_dump())]

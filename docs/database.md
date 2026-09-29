@@ -34,10 +34,13 @@ Tables are created by SQLAlchemy on startup (`app/database.py:init_db`).
 | `date` | date, indexed | |
 | `start_time` | varchar(5) `HH:MM` | |
 | `duration_minutes` | integer | 1..1440 |
-| `needs_travel_time` | boolean | add travel buffer after this event |
+| `needs_travel_time` | boolean | add travel buffer after this event (API default: false) |
 | `series_id` | varchar(32), nullable, indexed | uuid4 hex shared by all occurrences |
-| `repeat_type` | varchar(16), nullable | `daily` / `weekly` / `custom` |
-| `repeat_interval_days` | integer, nullable | step between occurrences |
+| `repeat_type` | varchar(16), nullable | `daily` / `weekly` / `custom` / `weekdays` / `weekends` / `cycle` |
+| `repeat_interval_days` | integer, nullable | step between occurrences (daily/weekly/custom) |
+| `repeat_days_on` | integer, nullable | cycle: days with the event (5 in 5:2) — *migration 001* |
+| `repeat_days_off` | integer, nullable | cycle: days without it (2 in 5:2) — *migration 001* |
+| `series_start` | date, nullable | anchor the pattern is counted from — *migration 001* |
 | `series_infinite` | boolean | series is auto-extended on read |
 | `created_at` | timestamptz | |
 
@@ -46,6 +49,8 @@ erDiagram
     users ||--|| user_settings : has
     users ||--o{ events : owns
 ```
+
+Schema changes to existing databases: see [migrations.md](migrations.md).
 
 ## Telegram bot — SQLite (`python/schedule.db`)
 

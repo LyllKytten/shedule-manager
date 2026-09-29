@@ -44,12 +44,19 @@ Read endpoints auto-extend infinite series up to the requested date.
   "date": "2026-10-01",
   "start_time": "18:00",
   "duration_minutes": 90,
-  "needs_travel_time": true,
-  "repeat_type": "weekly",          // null | "daily" | "weekly" | "custom"
+  "needs_travel_time": false,       // default false
+  "repeat_type": "weekly",          // null | "daily" | "weekly" | "custom" | "weekdays" | "weekends" | "cycle"
   "repeat_interval_days": null,     // required when repeat_type = "custom"
+  "repeat_days_on": null,           // cycle only: days with the event (5 in 5:2)
+  "repeat_days_off": null,          // cycle only: days without (2 in 5:2)
   "occurrences": 8                  // incl. the first; null = infinite (needs repeat_type)
 }
 ```
+
+`weekdays` repeats Mon–Fri, `weekends` Sat–Sun, `cycle` repeats
+*repeat_days_on* days with the event and *repeat_days_off* days without,
+counted from `date`. For these the first occurrence is the first matching day
+on or after `date`; `occurrences` counts events, not days.
 
 Event object:
 
@@ -58,7 +65,8 @@ Event object:
   "id": 1, "title": "Gym", "date": "2026-10-01",
   "start_time": "18:00", "end_time": "19:30", "duration_minutes": 90,
   "needs_travel_time": true, "series_id": "9f…", "repeat_type": "weekly",
-  "repeat_interval_days": 7, "series_infinite": false
+  "repeat_interval_days": 7, "repeat_days_on": null, "repeat_days_off": null,
+  "series_start": "2026-10-01", "series_infinite": false
 }
 ```
 

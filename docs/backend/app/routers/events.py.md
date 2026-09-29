@@ -9,7 +9,7 @@ another user's event id returns `404` (not `403`), so ids don't leak.
 | `GET /week` | 7 days from `start`; reuses `list_events`. |
 | `GET /free` | Free slots for `day` using the user's settings. |
 | `GET /free/week` | Free slots for each of the 7 days from `start` (one list item per day). |
-| `POST ""` | Creates one event or a series via `scheduling.create_events`. Validates that `custom` has an interval and that infinite (`occurrences: null`) has a `repeat_type`. |
+| `POST ""` | Creates one event or a series via `scheduling.create_events`. Validates that `custom` has an interval, `cycle` has `repeat_days_on` and `repeat_days_off`, and infinite (`occurrences: null`) has a `repeat_type`. |
 | `GET /{id}` | One event. |
 | `PATCH /{id}` | Partial update of one occurrence. |
 | `DELETE /{id}` | Deletes one occurrence. |

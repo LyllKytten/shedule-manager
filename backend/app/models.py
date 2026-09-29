@@ -52,10 +52,15 @@ class Event(Base):
     date: Mapped[date] = mapped_column(Date, index=True)
     start_time: Mapped[str] = mapped_column(String(5))  # HH:MM
     duration_minutes: Mapped[int] = mapped_column(Integer)
-    needs_travel_time: Mapped[bool] = mapped_column(Boolean, default=True)
+    needs_travel_time: Mapped[bool] = mapped_column(Boolean, default=False)
     series_id: Mapped[str | None] = mapped_column(String(32), index=True, nullable=True)
     repeat_type: Mapped[str | None] = mapped_column(String(16), nullable=True)
     repeat_interval_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Shift cycle (repeat_type "cycle"): N days with the event, then M days without.
+    repeat_days_on: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    repeat_days_off: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # First day of the series; the anchor the repeat pattern is counted from.
+    series_start: Mapped[date | None] = mapped_column(Date, nullable=True)
     series_infinite: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 

@@ -25,3 +25,20 @@ def init_db():
     from app import models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
+    _check_schema()
+
+
+def _check_schema():
+    """
+    create_all() never adds columns to existing tables. If the database was created
+    by an older version, refuse to start and point at the migration to run.
+    """
+    from sqlalchemy import inspect
+
+    existing = {c["name"] for c in inspect(engine).get_columns("events")}
+    missing = {c.name for c in Base.metadata.tables["events"].columns} - existing
+    if missing:
+        raise RuntimeError(
+            f"Database schema is outdated: table 'events' lacks {sorted(missing)}. "
+            "Apply the SQL files in backend/migrations/ (see docs/migrations.md)."
+        )

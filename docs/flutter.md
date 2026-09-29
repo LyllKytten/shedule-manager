@@ -25,7 +25,7 @@ flutter/lib/
     ├── home_screen.dart       Bottom navigation: Day / Week / Settings, FAB "Event"
     ├── day_view.dart          Events of a day + free-time chips, day navigation
     ├── week_view.dart         7 days, week navigation; Plans / Free time switch
-    ├── event_form_screen.dart Create (with repeat options) or edit one occurrence
+    ├── event_form_screen.dart Create (repeat: daily/weekly/N days/Mon–Fri/Sat–Sun/N:M cycle) or edit one
     ├── settings_screen.dart   Travel time, working hours, password, admin, sign out
     └── admin_screen.dart      Superuser: create/enable/disable/promote/delete users
 ```

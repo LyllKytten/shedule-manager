@@ -81,7 +81,7 @@ class EventTile extends StatelessWidget {
           children: [
             Text('${event.durationMinutes} min'),
             if (event.needsTravelTime) const Text('🚗 travel after'),
-            if (event.isRecurring) Text(event.seriesInfinite ? '♾ repeats' : '🔁 series'),
+            if (event.isRecurring) Text('${event.seriesInfinite ? '♾' : '🔁'} ${event.repeatLabel}'),
           ],
         ),
         onTap: () => _edit(context),

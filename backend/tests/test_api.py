@@ -32,7 +32,8 @@ def test_register_and_events_flow(client):
         headers=h,
         json={
             "title": "Gym", "date": "2026-10-01", "start_time": "10:00",
-            "duration_minutes": 60, "repeat_type": "weekly", "occurrences": 3,
+            "duration_minutes": 60, "needs_travel_time": True,
+            "repeat_type": "weekly", "occurrences": 3,
         },
     )
     assert r.status_code == 201
@@ -87,6 +88,55 @@ def test_free_week(client):
         {"start": "08:00", "end": "09:00"},
         {"start": "17:00", "end": "23:00"},
     ]
+
+
+def _create(client, h, **fields):
+    body = {"title": "X", "date": "2026-10-01", "start_time": "09:00", "duration_minutes": 30}
+    r = client.post("/events", headers=h, json={**body, **fields})
+    assert r.status_code == 201, r.text
+    return r.json()
+
+
+def test_travel_time_off_by_default(client):
+    h = login(client, "alice", "alicepass1")
+    assert _create(client, h)[0]["needs_travel_time"] is False
+
+
+def test_repeat_weekdays_and_weekends(client):
+    h = login(client, "alice", "alicepass1")
+    # 2026-10-03 is a Saturday: weekdays start on Monday the 5th and skip the weekend.
+    days = [e["date"] for e in _create(client, h, date="2026-10-03", repeat_type="weekdays", occurrences=6)]
+    assert days == ["2026-10-05", "2026-10-06", "2026-10-07", "2026-10-08", "2026-10-09", "2026-10-12"]
+    # 2026-09-30 is a Wednesday.
+    days = [e["date"] for e in _create(client, h, date="2026-09-30", repeat_type="weekends", occurrences=4)]
+    assert days == ["2026-10-03", "2026-10-04", "2026-10-10", "2026-10-11"]
+
+
+def test_repeat_cycle_5_2(client):
+    h = login(client, "alice", "alicepass1")
+    created = _create(client, h, repeat_type="cycle", repeat_days_on=5, repeat_days_off=2, occurrences=8)
+    assert [e["date"][-2:] for e in created] == ["01", "02", "03", "04", "05", "08", "09", "10"]
+    assert created[0]["repeat_days_on"] == 5 and created[0]["series_start"] == "2026-10-01"
+
+
+def test_infinite_cycle_keeps_phase_when_extended(client):
+    h = login(client, "alice", "alicepass1")
+    _create(client, h, title="Shift", date="2026-10-01", repeat_type="cycle",
+            repeat_days_on=3, repeat_days_off=2, occurrences=None)
+    # 3:2 has a 5-day period; 2027-06-01 is day 243 -> 243 % 5 = 3 -> day off,
+    # 2027-06-03 is day 245 -> 0 -> on.
+    def shift_on(day):
+        return any(e["title"] == "Shift" for e in client.get("/events", headers=h, params={"start": day}).json())
+    assert not shift_on("2027-06-01")
+    assert shift_on("2027-06-03")
+
+
+def test_cycle_requires_days(client):
+    h = login(client, "alice", "alicepass1")
+    r = client.post("/events", headers=h, json={
+        "title": "X", "date": "2026-10-01", "start_time": "09:00", "duration_minutes": 30,
+        "repeat_type": "cycle", "repeat_days_on": 5})
+    assert r.status_code == 400
 
 
 def test_events_are_isolated_per_user(client):

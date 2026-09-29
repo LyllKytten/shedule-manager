@@ -68,6 +68,49 @@ def compute_free_slots(events, day_start: str, day_end: str, travel_time_minutes
     return [(s.strftime(TIME_FMT), e.strftime(TIME_FMT)) for s, e in free if e > s]
 
 
+REPEAT_WEEKDAYS = "weekdays"  # Monday-Friday
+REPEAT_WEEKENDS = "weekends"  # Saturday-Sunday
+REPEAT_CYCLE = "cycle"  # N days on, M days off (shift pattern like 5:2), counted from series_start
+_FIXED_INTERVALS = {"daily": 1, "weekly": 7}
+
+
+def is_occurrence(day: date, rule: dict) -> bool:
+    """Whether `day` belongs to a series described by `rule` (repeat_* fields + series_start)."""
+    kind = rule["repeat_type"]
+    if kind == REPEAT_WEEKDAYS:
+        return day.weekday() < 5
+    if kind == REPEAT_WEEKENDS:
+        return day.weekday() >= 5
+    offset = (day - rule["series_start"]).days
+    if offset < 0:
+        return False
+    if kind == REPEAT_CYCLE:
+        on, off = rule["repeat_days_on"], rule["repeat_days_off"]
+        return offset % (on + off) < on
+    return offset % (rule["repeat_interval_days"] or 1) == 0  # daily / weekly / custom
+
+
+def occurrence_dates(rule: dict, first: date):
+    """Yields every occurrence date >= `first`, forever. Callers stop by count or date."""
+    day = first
+    while True:
+        if is_occurrence(day, rule):
+            yield day
+        day += timedelta(days=1)
+
+
+def _rule(data: dict, series_start: date) -> dict:
+    kind = data.get("repeat_type")
+    return {
+        "repeat_type": kind,
+        "repeat_interval_days": _FIXED_INTERVALS.get(kind)
+        or (data.get("repeat_interval_days") if kind == "custom" else None),
+        "repeat_days_on": data.get("repeat_days_on") if kind == REPEAT_CYCLE else None,
+        "repeat_days_off": data.get("repeat_days_off") if kind == REPEAT_CYCLE else None,
+        "series_start": series_start if kind else None,
+    }
+
+
 def _new_event(user_id: int, template: dict, occ_date: date, series_id, infinite: bool) -> Event:
     return Event(
         user_id=user_id,
@@ -75,10 +118,13 @@ def _new_event(user_id: int, template: dict, occ_date: date, series_id, infinite
         date=occ_date,
         start_time=template["start_time"],
         duration_minutes=template["duration_minutes"],
-        needs_travel_time=template["needs_travel_time"],
+        needs_travel_time=template.get("needs_travel_time", False),
         series_id=series_id,
         repeat_type=template.get("repeat_type"),
         repeat_interval_days=template.get("repeat_interval_days"),
+        repeat_days_on=template.get("repeat_days_on"),
+        repeat_days_off=template.get("repeat_days_off"),
+        series_start=template.get("series_start"),
         series_infinite=infinite,
     )
 
@@ -87,29 +133,27 @@ def create_events(db: Session, user_id: int, data: dict) -> list[Event]:
     """
     Creates a single event, a finite series (`occurrences` > 1) or an infinite
     series (repeat_type set and occurrences is None). Occurrences of a series
-    share a series_id.
+    share a series_id. For weekdays/weekends/cycle the first occurrence is the
+    first matching day on or after `date`.
     """
-    repeat_type = data.get("repeat_type")
-    interval = {"daily": 1, "weekly": 7}.get(repeat_type) or data.get("repeat_interval_days") or 1
-    data = {**data, "repeat_interval_days": interval if repeat_type else None}
-    occurrences = data.get("occurrences")
     start: date = data["date"]
+    data = {**data, **_rule(data, start)}
+    occurrences = data.get("occurrences")
 
-    if not repeat_type:
+    if not data["repeat_type"]:
         events = [_new_event(user_id, data, start, None, False)]
     elif occurrences is None:
         series_id = uuid.uuid4().hex
         until = start + timedelta(days=INFINITE_INITIAL_HORIZON_DAYS)
-        events, cur = [], start
-        while cur <= until:
-            events.append(_new_event(user_id, data, cur, series_id, True))
-            cur += timedelta(days=interval)
+        events = []
+        for day in occurrence_dates(data, start):
+            if day > until:
+                break
+            events.append(_new_event(user_id, data, day, series_id, True))
     else:
         series_id = uuid.uuid4().hex if occurrences > 1 else None
-        events = [
-            _new_event(user_id, data, start + timedelta(days=interval * i), series_id, False)
-            for i in range(occurrences)
-        ]
+        dates = occurrence_dates(data, start)
+        events = [_new_event(user_id, data, next(dates), series_id, False) for _ in range(occurrences)]
 
     db.add_all(events)
     db.commit()
@@ -135,7 +179,7 @@ def extend_series_if_needed(
                 Event.user_id == user_id, Event.series_id == series_id, Event.date == last_date
             ).limit(1)
         ).first()
-        if tpl is None:
+        if tpl is None or (tpl.repeat_type == REPEAT_CYCLE and tpl.series_start is None):
             continue
         template = {
             "title": tpl.title,
@@ -144,13 +188,16 @@ def extend_series_if_needed(
             "needs_travel_time": tpl.needs_travel_time,
             "repeat_type": tpl.repeat_type,
             "repeat_interval_days": tpl.repeat_interval_days,
+            "repeat_days_on": tpl.repeat_days_on,
+            "repeat_days_off": tpl.repeat_days_off,
+            # Series created before series_start existed are anchored on their last row.
+            "series_start": tpl.series_start or last_date,
         }
-        interval = tpl.repeat_interval_days or 1
         target = until + timedelta(days=buffer_days)
-        cur = last_date
-        while cur < target:
-            cur += timedelta(days=interval)
-            db.add(_new_event(user_id, template, cur, series_id, True))
+        for day in occurrence_dates(template, last_date + timedelta(days=1)):
+            if day > target:
+                break
+            db.add(_new_event(user_id, template, day, series_id, True))
             added = True
     if added:
         db.commit()

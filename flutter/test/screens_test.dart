@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:schedule_manager/models/user.dart';
 import 'package:schedule_manager/screens/admin_screen.dart';
 import 'package:schedule_manager/screens/day_view.dart';
+import 'package:schedule_manager/screens/event_form_screen.dart';
 import 'package:schedule_manager/screens/settings_screen.dart';
 import 'package:schedule_manager/screens/week_view.dart';
 import 'package:schedule_manager/state/auth_state.dart';
@@ -113,5 +114,52 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('harak1r1 (you)'), findsOneWidget);
     expect(find.text('alice'), findsOneWidget);
+  });
+
+  testWidgets('Event form: travel off by default, 3:2 shift cycle is sent', (tester) async {
+    Map<String, dynamic>? sent;
+    final backend = MockClient((req) async {
+      sent = jsonDecode(req.body) as Map<String, dynamic>;
+      return http.Response('[]', 201);
+    });
+    await http.runWithClient(() async {
+      final auth = AuthState()..api.token = 'test';
+      await tester.pumpWidget(ChangeNotifierProvider.value(
+        value: auth,
+        child: MaterialApp(
+          home: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (_) => const EventFormScreen())),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      ));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      final travel = tester.widget<SwitchListTile>(find.byType(SwitchListTile));
+      expect(travel.value, isFalse);
+
+      await tester.enterText(find.widgetWithText(TextFormField, 'Title'), 'Night shift');
+      await tester.scrollUntilVisible(find.text('Shift cycle (N:M)'), 200,
+          scrollable: find.byType(Scrollable).first);
+      await tester.tap(find.text('Shift cycle (N:M)'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(find.text('3:2'), 200, scrollable: find.byType(Scrollable).first);
+      await tester.tap(find.text('3:2'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Save').first);
+      await tester.pumpAndSettle();
+    }, () => backend);
+
+    expect(sent, isNotNull);
+    expect(sent!['title'], 'Night shift');
+    expect(sent!['repeat_type'], 'cycle');
+    expect(sent!['repeat_days_on'], 3);
+    expect(sent!['repeat_days_off'], 2);
+    expect(sent!['needs_travel_time'], isFalse);
+    expect(sent!['occurrences'], 4);
   });
 }

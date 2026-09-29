@@ -21,6 +21,8 @@ class _EventFormScreenState extends State<EventFormScreen> {
   late final TextEditingController _title;
   late final TextEditingController _duration;
   final _interval = TextEditingController(text: '2');
+  final _daysOn = TextEditingController(text: '5');
+  final _daysOff = TextEditingController(text: '2');
   final _customOcc = TextEditingController(text: '10');
 
   late DateTime _date;
@@ -41,7 +43,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
     _duration = TextEditingController(text: '${e?.durationMinutes ?? 60}');
     _date = e?.date ?? dateOnly(DateTime.now());
     _time = e != null ? parseHhmm(e.startTime) : const TimeOfDay(hour: 9, minute: 0);
-    _travel = e?.needsTravelTime ?? true;
+    _travel = e?.needsTravelTime ?? false;
   }
 
   Future<void> _save() async {
@@ -74,6 +76,8 @@ class _EventFormScreenState extends State<EventFormScreen> {
           needsTravelTime: _travel,
           repeat: _repeat,
           intervalDays: _repeat == RepeatType.custom ? int.parse(_interval.text) : null,
+          daysOn: _repeat == RepeatType.cycle ? int.parse(_daysOn.text) : null,
+          daysOff: _repeat == RepeatType.cycle ? int.parse(_daysOff.text) : null,
           occurrences: occurrences,
         ));
       }
@@ -176,16 +180,89 @@ class _EventFormScreenState extends State<EventFormScreen> {
               const Divider(height: 32),
               Text('Repeat', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
-              SegmentedButton<RepeatType>(
-                segments: const [
-                  ButtonSegment(value: RepeatType.none, label: Text('No')),
-                  ButtonSegment(value: RepeatType.daily, label: Text('Daily')),
-                  ButtonSegment(value: RepeatType.weekly, label: Text('Weekly')),
-                  ButtonSegment(value: RepeatType.custom, label: Text('Every N')),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (final (type, label) in const [
+                    (RepeatType.none, 'No'),
+                    (RepeatType.daily, 'Daily'),
+                    (RepeatType.weekly, 'Weekly'),
+                    (RepeatType.custom, 'Every N days'),
+                    (RepeatType.weekdays, 'Work days (Mon–Fri)'),
+                    (RepeatType.weekends, 'Weekends (Sat–Sun)'),
+                    (RepeatType.cycle, 'Shift cycle (N:M)'),
+                  ])
+                    ChoiceChip(
+                      label: Text(label),
+                      selected: _repeat == type,
+                      onSelected: (_) => setState(() => _repeat = type),
+                    ),
                 ],
-                selected: {_repeat},
-                onSelectionChanged: (s) => setState(() => _repeat = s.first),
               ),
+              if (_repeat == RepeatType.cycle) ...[
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    for (final (on, off) in const [(5, 2), (4, 3), (3, 2), (2, 2), (1, 1)])
+                      ActionChip(
+                        label: Text('$on:$off'),
+                        onPressed: () => setState(() {
+                          _daysOn.text = '$on';
+                          _daysOff.text = '$off';
+                        }),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _daysOn,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Days with event',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: _positiveInt,
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(':', style: TextStyle(fontSize: 20)),
+                    ),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _daysOff,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Days off',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: _positiveInt,
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Starting ${humanDate(_date)}: ${_daysOn.text} days with the event, '
+                  'then ${_daysOff.text} days without, repeating.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+              if (_repeat == RepeatType.weekdays || _repeat == RepeatType.weekends) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Starts on the first ${_repeat == RepeatType.weekdays ? 'work day' : 'weekend day'} '
+                  'from ${humanDate(_date)}.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
               if (_repeat == RepeatType.custom) ...[
                 const SizedBox(height: 12),
                 TextFormField(

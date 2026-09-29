@@ -56,9 +56,12 @@ class EventCreate(BaseModel):
     date: dt.date
     start_time: str
     duration_minutes: int = Field(gt=0, le=24 * 60)
-    needs_travel_time: bool = True
-    repeat_type: Literal["daily", "weekly", "custom"] | None = None
+    needs_travel_time: bool = False
+    # weekdays = Mon-Fri, weekends = Sat-Sun, cycle = repeat_days_on / repeat_days_off (e.g. 5:2)
+    repeat_type: Literal["daily", "weekly", "custom", "weekdays", "weekends", "cycle"] | None = None
     repeat_interval_days: int | None = Field(default=None, gt=0)
+    repeat_days_on: int | None = Field(default=None, gt=0, le=365)
+    repeat_days_off: int | None = Field(default=None, gt=0, le=365)
     # Number of occurrences including the first one; null + repeat_type = infinite series.
     occurrences: int | None = Field(default=1, gt=0, le=1000)
 
@@ -91,6 +94,9 @@ class EventOut(BaseModel):
     series_id: str | None
     repeat_type: str | None
     repeat_interval_days: int | None
+    repeat_days_on: int | None
+    repeat_days_off: int | None
+    series_start: dt.date | None
     series_infinite: bool
 
 

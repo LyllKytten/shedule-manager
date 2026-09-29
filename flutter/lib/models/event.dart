@@ -1,6 +1,7 @@
 import '../utils/format.dart';
 
-enum RepeatType { none, daily, weekly, custom }
+/// weekdays = Mon–Fri, weekends = Sat–Sun, cycle = N days on / M days off (e.g. 5:2).
+enum RepeatType { none, daily, weekly, custom, weekdays, weekends, cycle }
 
 class Event {
   final int id;
@@ -13,6 +14,8 @@ class Event {
   final String? seriesId;
   final String? repeatType;
   final int? repeatIntervalDays;
+  final int? repeatDaysOn;
+  final int? repeatDaysOff;
   final bool seriesInfinite;
 
   Event({
@@ -26,10 +29,23 @@ class Event {
     this.seriesId,
     this.repeatType,
     this.repeatIntervalDays,
+    this.repeatDaysOn,
+    this.repeatDaysOff,
     this.seriesInfinite = false,
   });
 
   bool get isRecurring => seriesId != null;
+
+  /// Short label of the repeat pattern, e.g. "daily", "Mon–Fri", "5:2".
+  String get repeatLabel => switch (repeatType) {
+        'daily' => 'daily',
+        'weekly' => 'weekly',
+        'custom' => 'every ${repeatIntervalDays ?? '?'} days',
+        'weekdays' => 'Mon–Fri',
+        'weekends' => 'Sat–Sun',
+        'cycle' => '${repeatDaysOn ?? '?'}:${repeatDaysOff ?? '?'}',
+        _ => 'series',
+      };
 
   factory Event.fromJson(Map<String, dynamic> j) => Event(
         id: j['id'] as int,
@@ -42,6 +58,8 @@ class Event {
         seriesId: j['series_id'] as String?,
         repeatType: j['repeat_type'] as String?,
         repeatIntervalDays: j['repeat_interval_days'] as int?,
+        repeatDaysOn: j['repeat_days_on'] as int?,
+        repeatDaysOff: j['repeat_days_off'] as int?,
         seriesInfinite: (j['series_infinite'] as bool?) ?? false,
       );
 }
@@ -56,6 +74,10 @@ class NewEvent {
   final RepeatType repeat;
   final int? intervalDays;
 
+  /// Shift cycle: days with the event, then days without (only for [RepeatType.cycle]).
+  final int? daysOn;
+  final int? daysOff;
+
   /// Occurrences including the first one; null = infinite (only with repeat).
   final int? occurrences;
 
@@ -64,9 +86,11 @@ class NewEvent {
     required this.date,
     required this.startTime,
     required this.durationMinutes,
-    required this.needsTravelTime,
+    this.needsTravelTime = false,
     this.repeat = RepeatType.none,
     this.intervalDays,
+    this.daysOn,
+    this.daysOff,
     this.occurrences = 1,
   });
 
@@ -78,6 +102,8 @@ class NewEvent {
         'needs_travel_time': needsTravelTime,
         'repeat_type': repeat == RepeatType.none ? null : repeat.name,
         'repeat_interval_days': repeat == RepeatType.custom ? intervalDays : null,
+        'repeat_days_on': repeat == RepeatType.cycle ? daysOn : null,
+        'repeat_days_off': repeat == RepeatType.cycle ? daysOff : null,
         'occurrences': repeat == RepeatType.none ? 1 : occurrences,
       };
 }

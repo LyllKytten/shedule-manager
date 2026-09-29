@@ -27,7 +27,8 @@ Each of `python/`, `backend/` and `flutter/` has its own `Dockerfile`,
   **"travel time after"** flag.
 - **Free time** for a day: gaps in the working day, with the travel buffer
   added only after events that need it.
-- **Repeats**: daily, weekly or every N days; 4 / 8 / 12 / custom times or
+- **Repeats**: daily, weekly, every N days, work days (Mon–Fri), weekends or
+  shift cycles like 5:2 / 3:2; 4 / 8 / 12 / custom times or
   **forever** (materialized 90 days ahead, auto-extended when you look further).
 - Edit one occurrence; delete one occurrence or the whole series.
 - Day and week views; the week shows either your plans or the free time of
