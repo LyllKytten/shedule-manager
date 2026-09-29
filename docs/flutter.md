@@ -36,6 +36,13 @@ flutter/lib/
 own data through `context.read<AuthState>().api` and reload after changes; the
 home screen bumps a key after adding an event so the visible tab refetches.
 
+## Backend URL
+
+Default: `http://35.207.134.118:8000` (the Google Cloud VM), set in
+`lib/config.dart`. Override per build with `--dart-define=API_URL=...`, or at
+runtime via the server address on the login screen (saved on the device and
+used instead of the default from then on).
+
 ## Commands
 
 ```bash

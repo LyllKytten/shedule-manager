@@ -4,7 +4,7 @@ services:
       context: .
       args:
         # URL of the backend as seen from the user's browser
-        API_URL: ${API_URL:-http://localhost:8000}
+        API_URL: ${API_URL:-http://35.207.134.118:8000}
     container_name: schedule-web
     restart: unless-stopped
     ports:

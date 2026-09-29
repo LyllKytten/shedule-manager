@@ -1,7 +1,7 @@
 # ---- build stage: compile the Flutter web app ----
 FROM ghcr.io/cirruslabs/flutter:stable AS build
 
-ARG API_URL=http://localhost:8000
+ARG API_URL=http://35.207.134.118:8000
 WORKDIR /app
 COPY pubspec.yaml pubspec.lock ./
 RUN flutter pub get
