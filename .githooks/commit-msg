@@ -1,0 +1,18 @@
+#!/bin/sh
+# Removes AI-tool attribution lines ("Generated with Claude Code",
+# "Co-Authored-By: Claude ...", "Powered by Claude Code") from commit messages.
+# Enable once per clone:  git config core.hooksPath .githooks
+
+msg_file="$1"
+tmp="$(mktemp)"
+
+grep -viE \
+  -e 'generated with \[?claude code' \
+  -e 'powered by \[?claude code' \
+  -e '^co-authored-by:.*(claude|anthropic)' \
+  -e 'claude\.(ai|com)/(code|claude-code)' \
+  "$msg_file" > "$tmp"
+
+# Drop trailing blank lines left behind by the removed footer.
+sed -e ':a' -e '/^\n*$/{$d;N;ba' -e '}' "$tmp" > "$msg_file"
+rm -f "$tmp"

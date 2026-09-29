@@ -1,0 +1,60 @@
+# ---------- OS / editors ----------
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+*.iml
+
+# ---------- secrets ----------
+.env
+.env.*
+!.env.example
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# ---------- databases / local data ----------
+*.db
+*.sqlite3
+*.zip
+
+# ---------- Flutter / Dart ----------
+flutter/.dart_tool/
+flutter/.flutter-plugins
+flutter/.flutter-plugins-dependencies
+flutter/.pub-cache/
+flutter/.pub/
+flutter/build/
+flutter/coverage/
+flutter/android/.gradle/
+flutter/android/local.properties
+flutter/android/app/debug/
+flutter/android/app/profile/
+flutter/android/app/release/
+flutter/android/key.properties
+*.jks
+*.keystore
+flutter/ios/Pods/
+flutter/ios/.symlinks/
+flutter/ios/Flutter/Generated.xcconfig
+flutter/ios/Flutter/flutter_export_environment.sh
+flutter/ios/Flutter/ephemeral/
+flutter/linux/flutter/ephemeral/
+*.log
+
+# ---------- Docker ----------
+docker-compose.override.yml
